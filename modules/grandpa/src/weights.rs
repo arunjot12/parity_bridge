@@ -40,10 +40,17 @@
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
+
+use frame_support::{
+	
+};
 use frame_support::{
 	traits::Get,
 	weights::{constants::RocksDbWeight, Weight},
+	
 };
+
+use frame_support::weights::RuntimeDbWeight;
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for `pallet_bridge_grandpa`.
@@ -55,21 +62,21 @@ pub trait WeightInfo {
 pub struct MillauWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for MillauWeight<T> {
 	fn submit_finality_proof(p: u32, v: u32) -> Weight {
-		(115_651_000 as Weight)
-			.saturating_add((61_465_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add((3_438_000 as Weight).saturating_mul(v as Weight))
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
+		Weight::from_parts(61_726_000, 54703)
+		.saturating_add(Weight::from_parts(36_708_702, 0).saturating_mul(p.into()))
+		.saturating_add(Weight::from_parts(1_469_032, 0).saturating_mul(v.into()))
+			.saturating_add(T::DbWeight::get().reads(7_u64))
+			.saturating_add(T::DbWeight::get().writes(6_u64))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
 	fn submit_finality_proof(p: u32, v: u32) -> Weight {
-		(115_651_000 as Weight)
-			.saturating_add((61_465_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add((3_438_000 as Weight).saturating_mul(v as Weight))
-			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(6 as Weight))
+		Weight::from_parts(61_726_000, 54703)
+		.saturating_add(Weight::from_parts(36_708_702, 0).saturating_mul(p.into()))
+		.saturating_add(Weight::from_parts(1_469_032, 0).saturating_mul(v.into()))
+			.saturating_add(RocksDbWeight::get().reads(7_u64))
+			.saturating_add(RocksDbWeight::get().writes(6_u64))
 	}
 }

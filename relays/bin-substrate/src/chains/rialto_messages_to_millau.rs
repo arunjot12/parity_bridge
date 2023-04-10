@@ -30,9 +30,9 @@ pub struct RialtoMessagesToMillau;
 substrate_relay_helper::generate_direct_update_conversion_rate_call_builder!(
 	Rialto,
 	RialtoMessagesToMillauUpdateConversionRateCallBuilder,
-	rialto_runtime::Runtime,
-	rialto_runtime::WithMillauMessagesInstance,
-	rialto_runtime::millau_messages::RialtoToMillauMessagesParameter::MillauToRialtoConversionRate
+	runtime::Runtime,
+	runtime::WithMillauMessagesInstance,
+	runtime::our_chain_messages::RialtoToMillauMessagesParameter::MillauToRialtoConversionRate
 );
 
 impl SubstrateMessageLane for RialtoMessagesToMillau {
@@ -54,13 +54,13 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 
 	type ReceiveMessagesProofCallBuilder = DirectReceiveMessagesProofCallBuilder<
 		Self,
-		millau_runtime::Runtime,
-		millau_runtime::WithRialtoMessagesInstance,
+		kitchensink_runtime::Runtime,
+		kitchensink_runtime::WithRialtoMessagesInstance,
 	>;
 	type ReceiveMessagesDeliveryProofCallBuilder = DirectReceiveMessagesDeliveryProofCallBuilder<
 		Self,
-		rialto_runtime::Runtime,
-		rialto_runtime::WithMillauMessagesInstance,
+		runtime::Runtime,
+		runtime::WithMillauMessagesInstance,
 	>;
 
 	type TargetToSourceChainConversionRateUpdateBuilder =

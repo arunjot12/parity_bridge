@@ -2,10 +2,12 @@
 resolver = "2"
 
 members = [
-	"bin/*/node",
-	"bin/*/runtime",
+	"bin/millau/node/*",
+	"bin/runtime-common",
+	"bin/substrate2/runtime",
+	"bin/substrate2/node/*",
+	"primitives_bridge/*",
 	"fuzz/*",
 	"modules/*",
-	"primitives/*",
-	"relays/*",
+	#"relays/*",
 ]

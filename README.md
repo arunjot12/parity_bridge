@@ -39,7 +39,7 @@ cargo test --all
 ```
 
 Also you can build the repo with
-[Parity CI Docker image](https://github.com/paritytech/scripts/tree/master/dockerfiles/bridges-ci):
+[Parity CI Docker image](https://github.com/paritytech/scripts/tree/polkadot-v0.9.36/dockerfiles/bridges-ci):
 
 ```bash
 docker pull paritytech/bridges-ci:production

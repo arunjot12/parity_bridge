@@ -15,6 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_messages::MessageNonce;
+use frame_support::weights::WeightToFee;
 use bp_runtime::{Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEraOf};
 use codec::{Codec, Encode};
 use frame_support::weights::{Weight, WeightToFeePolynomial};
@@ -61,7 +62,7 @@ pub trait Chain: ChainBase + Clone {
 	type Call: Clone + Codec + Dispatchable + Debug + Send;
 
 	/// Type that is used by the chain, to convert from weight to fee.
-	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
+	type WeightToFee: WeightToFee<Balance = Self::Balance>;
 }
 
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of

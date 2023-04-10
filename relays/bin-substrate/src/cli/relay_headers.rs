@@ -50,11 +50,11 @@ pub struct RelayHeaders {
 pub enum RelayHeadersBridge {
 	MillauToRialto,
 	RialtoToMillau,
-	WestendToMillau,
-	RococoToWococo,
-	WococoToRococo,
-	KusamaToPolkadot,
-	PolkadotToKusama,
+	// WestendToMillau,
+	// RococoToWococo,
+	// WococoToRococo,
+	// KusamaToPolkadot,
+	// PolkadotToKusama,
 }
 
 macro_rules! select_bridge {
@@ -74,41 +74,41 @@ macro_rules! select_bridge {
 
 				$generic
 			},
-			RelayHeadersBridge::WestendToMillau => {
-				type Source = relay_westend_client::Westend;
-				type Target = relay_millau_client::Millau;
-				type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
+			// RelayHeadersBridge::WestendToMillau => {
+			// 	type Source = relay_westend_client::Westend;
+			// 	type Target = relay_millau_client::Millau;
+			// 	type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
 
-				$generic
-			},
-			RelayHeadersBridge::RococoToWococo => {
-				type Source = relay_rococo_client::Rococo;
-				type Target = relay_wococo_client::Wococo;
-				type Finality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
+			// 	$generic
+			// },
+			// RelayHeadersBridge::RococoToWococo => {
+			// 	type Source = relay_rococo_client::Rococo;
+			// 	type Target = relay_wococo_client::Wococo;
+			// 	type Finality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
 
-				$generic
-			},
-			RelayHeadersBridge::WococoToRococo => {
-				type Source = relay_wococo_client::Wococo;
-				type Target = relay_rococo_client::Rococo;
-				type Finality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
+			// 	$generic
+			// },
+			// RelayHeadersBridge::WococoToRococo => {
+			// 	type Source = relay_wococo_client::Wococo;
+			// 	type Target = relay_rococo_client::Rococo;
+			// 	type Finality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
 
-				$generic
-			},
-			RelayHeadersBridge::KusamaToPolkadot => {
-				type Source = relay_kusama_client::Kusama;
-				type Target = relay_polkadot_client::Polkadot;
-				type Finality = crate::chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot;
+			// 	$generic
+			// },
+			// RelayHeadersBridge::KusamaToPolkadot => {
+			// 	type Source = relay_kusama_client::Kusama;
+			// 	type Target = relay_polkadot_client::Polkadot;
+			// 	type Finality = crate::chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot;
 
-				$generic
-			},
-			RelayHeadersBridge::PolkadotToKusama => {
-				type Source = relay_polkadot_client::Polkadot;
-				type Target = relay_kusama_client::Kusama;
-				type Finality = crate::chains::polkadot_headers_to_kusama::PolkadotFinalityToKusama;
+			// 	$generic
+			// },
+			// RelayHeadersBridge::PolkadotToKusama => {
+			// 	type Source = relay_polkadot_client::Polkadot;
+			// 	type Target = relay_kusama_client::Kusama;
+			// 	type Finality = crate::chains::polkadot_headers_to_kusama::PolkadotFinalityToKusama;
 
-				$generic
-			},
+			// 	$generic
+			// },
 		}
 	};
 }

@@ -32,8 +32,8 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
 	type SubmitFinalityProofCallBuilder = DirectSubmitGrandpaFinalityProofCallBuilder<
 		Self,
-		millau_runtime::Runtime,
-		millau_runtime::RialtoGrandpaInstance,
+		kitchensink_runtime::Runtime,
+		kitchensink_runtime::RialtoGrandpaInstance,
 	>;
 	type TransactionSignScheme = relay_millau_client::Millau;
 }

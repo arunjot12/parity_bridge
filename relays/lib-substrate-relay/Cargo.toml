@@ -17,10 +17,10 @@ log = "0.4.14"
 
 # Bridge dependencies
 
-bp-header-chain = { path = "../../primitives/header-chain" }
+bp-header-chain = { path = "../../primitives_bridge/header-chain" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 
-finality-grandpa = { version = "0.15.0" }
+finality-grandpa = { version = "0.16.2" }
 finality-relay = { path = "../finality" }
 relay-utils = { path = "../utils" }
 messages-relay = { path = "../messages" }
@@ -29,24 +29,20 @@ relay-substrate-client = { path = "../client-substrate" }
 pallet-bridge-grandpa = { path = "../../modules/grandpa" }
 pallet-bridge-messages = { path = "../../modules/messages" }
 
-bp-runtime = { path = "../../primitives/runtime" }
-bp-messages = { path = "../../primitives/messages" }
+bp-runtime = { path = "../../primitives_bridge/runtime" }
+bp-messages = { path = "../../primitives_bridge/messages" }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
 
 [dev-dependencies]
-bp-millau = { path = "../../primitives/chain-millau" }
-bp-rialto = { path = "../../primitives/chain-rialto" }
-bp-rococo = { path = "../../primitives/chain-rococo" }
-bp-wococo = { path = "../../primitives/chain-wococo" }
-pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master" }
-relay-rococo-client = { path = "../client-rococo" }
-relay-wococo-client = { path = "../client-wococo" }
-rialto-runtime = { path = "../../bin/rialto/runtime" }
+bp-millau = { path = "../../primitives_bridge/chain-millau" }
+bp-rialto = { path = "../../primitives_bridge/chain-rialto" }
+pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+runtime = { path = "../../bin/substrate2/runtime" }

@@ -70,7 +70,7 @@ use bp_runtime::{messages::DispatchFeePayment, ChainId};
 use bp_token_swap::{
 	RawBridgedTransferCall, TokenSwap, TokenSwapCreation, TokenSwapState, TokenSwapType,
 };
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	fail,
 	traits::{Currency, ExistenceRequirement},
@@ -101,7 +101,7 @@ pub use pallet::*;
 pub const PENDING_SWAPS_MAP_NAME: &str = "PendingSwaps";
 
 /// Origin for the token swap pallet.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode,MaxEncodedLen, TypeInfo)]
 pub enum RawOrigin<AccountId, I> {
 	/// The call is originated by the token swap account.
 	TokenSwap {
@@ -126,7 +126,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfoExt;
 
@@ -143,7 +143,7 @@ pub mod pallet {
 		type OutboundMessageLaneId: Get<LaneId>;
 		/// Messages bridge with Bridged chain.
 		type MessagesBridge: MessagesBridge<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::AccountId,
 			<Self::ThisCurrency as Currency<Self::AccountId>>::Balance,
 			MessagePayloadOf<Self, I>,
@@ -210,7 +210,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
 	where
 		BridgedAccountPublicOf<T, I>: Parameter,
-		Origin<T, I>: Into<T::Origin>,
+		Origin<T, I>: Into<T::RuntimeOrigin>,
 	{
 		/// Start token swap procedure.
 		///
@@ -301,7 +301,8 @@ pub mod pallet {
 			}
 
 			let swap_account = swap_account_id::<T, I>(&swap);
-			let actual_send_message_weight = frame_support::storage::with_transaction(|| {
+			let actual_send_message_weight = frame_support::storage::with_transaction(
+				|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
 				// funds are transferred from This account to the temporary Swap account
 				let transfer_result = T::ThisCurrency::transfer(
 					&swap.source_account_at_this_chain,
@@ -324,7 +325,7 @@ pub mod pallet {
 					);
 
 					return sp_runtime::TransactionOutcome::Rollback(Err(
-						Error::<T, I>::FailedToTransferToSwapAccount,
+						Error::<T, I>::FailedToTransferToSwapAccount.into(),
 					))
 				}
 
@@ -362,7 +363,7 @@ pub mod pallet {
 						);
 
 						return sp_runtime::TransactionOutcome::Rollback(Err(
-							Error::<T, I>::FailedToSendTransferMessage,
+							Error::<T, I>::FailedToSendTransferMessage.into(),
 						))
 					},
 				};
@@ -386,7 +387,7 @@ pub mod pallet {
 					);
 
 					return sp_runtime::TransactionOutcome::Rollback(Err(
-						Error::<T, I>::SwapAlreadyStarted,
+						Error::<T, I>::SwapAlreadyStarted.into(),
 					))
 				}
 
@@ -557,7 +558,7 @@ pub mod pallet {
 		fn on_messages_delivered(lane: &LaneId, delivered_messages: &DeliveredMessages) -> Weight {
 			// we're only interested in our lane messages
 			if *lane != T::OutboundMessageLaneId::get() {
-				return 0
+				return Weight::zero()
 			}
 
 			// so now we're dealing with our lane messages. Ideally we'll have dedicated lane

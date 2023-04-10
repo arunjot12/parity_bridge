@@ -28,22 +28,22 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 /// Rialto header id.
-pub type HeaderId = relay_utils::HeaderId<rialto_runtime::Hash, rialto_runtime::BlockNumber>;
+pub type HeaderId = relay_utils::HeaderId<runtime::Hash, runtime::BlockNumber>;
 
 /// Rialto chain definition
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rialto;
 
 impl ChainBase for Rialto {
-	type BlockNumber = rialto_runtime::BlockNumber;
-	type Hash = rialto_runtime::Hash;
-	type Hasher = rialto_runtime::Hashing;
-	type Header = rialto_runtime::Header;
+	type BlockNumber = runtime::BlockNumber;
+	type Hash = runtime::Hash;
+	type Hasher = runtime::Hashing;
+	type Header = runtime::Header;
 
-	type AccountId = rialto_runtime::AccountId;
-	type Balance = rialto_runtime::Balance;
-	type Index = rialto_runtime::Index;
-	type Signature = rialto_runtime::Signature;
+	type AccountId = runtime::AccountId;
+	type Balance = runtime::Balance;
+	type Index = runtime::Index;
+	type Signature = runtime::Signature;
 
 	fn max_extrinsic_size() -> u32 {
 		bp_rialto::Rialto::max_extrinsic_size()
@@ -64,8 +64,8 @@ impl Chain for Rialto {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_rialto::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type SignedBlock = rialto_runtime::SignedBlock;
-	type Call = rialto_runtime::Call;
+	type SignedBlock = runtime::SignedBlock;
+	type Call = runtime::RuntimeCall;
 	type WeightToFee = bp_rialto::WeightToFee;
 }
 
@@ -90,7 +90,7 @@ impl ChainWithMessages for Rialto {
 impl ChainWithBalances for Rialto {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		use frame_support::storage::generator::StorageMap;
-		StorageKey(frame_system::Account::<rialto_runtime::Runtime>::storage_map_final_key(
+		StorageKey(frame_system::Account::<runtime::Runtime>::storage_map_final_key(
 			account_id,
 		))
 	}
@@ -99,20 +99,21 @@ impl ChainWithBalances for Rialto {
 impl TransactionSignScheme for Rialto {
 	type Chain = Rialto;
 	type AccountKeyPair = sp_core::sr25519::Pair;
-	type SignedTransaction = rialto_runtime::UncheckedExtrinsic;
+	type SignedTransaction = runtime::UncheckedExtrinsic;
 
 	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::from_raw(
 			param.unsigned.call.clone(),
 			(
-				frame_system::CheckNonZeroSender::<rialto_runtime::Runtime>::new(),
-				frame_system::CheckSpecVersion::<rialto_runtime::Runtime>::new(),
-				frame_system::CheckTxVersion::<rialto_runtime::Runtime>::new(),
-				frame_system::CheckGenesis::<rialto_runtime::Runtime>::new(),
-				frame_system::CheckEra::<rialto_runtime::Runtime>::from(param.era.frame_era()),
-				frame_system::CheckNonce::<rialto_runtime::Runtime>::from(param.unsigned.nonce),
-				frame_system::CheckWeight::<rialto_runtime::Runtime>::new(),
-				pallet_transaction_payment::ChargeTransactionPayment::<rialto_runtime::Runtime>::from(param.unsigned.tip),
+				frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
+				frame_system::CheckSpecVersion::<runtime::Runtime>::new(),
+				frame_system::CheckTxVersion::<runtime::Runtime>::new(),
+				frame_system::CheckGenesis::<runtime::Runtime>::new(),
+				frame_system::CheckEra::<runtime::Runtime>::from(param.era.frame_era()),
+				frame_system::CheckNonce::<runtime::Runtime>::from(param.unsigned.nonce),
+				frame_system::CheckWeight::<runtime::Runtime>::new(),
+				pallet_asset_tx_payment::ChargeAssetTxPayment::<runtime::Runtime>::from(param.unsigned.tip,None),
+				//pallet_transaction_payment::ChargeTransactionPayment::<runtime::Runtime>::from(param.unsigned.tip),
 			),
 			(
 				(),
@@ -129,7 +130,7 @@ impl TransactionSignScheme for Rialto {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		Ok(rialto_runtime::UncheckedExtrinsic::new_signed(
+		Ok(runtime::UncheckedExtrinsic::new_signed(
 			call.into_decoded()?,
 			signer.into_account().into(),
 			signature.into(),
@@ -144,7 +145,7 @@ impl TransactionSignScheme for Rialto {
 	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {
 		tx.signature
 			.as_ref()
-			.map(|(address, _, _)| *address == rialto_runtime::Address::Id(signer.public().into()))
+			.map(|(address, _, _)| *address == runtime::Address::Id(signer.public().into()))
 			.unwrap_or(false)
 	}
 
@@ -164,7 +165,7 @@ impl TransactionSignScheme for Rialto {
 pub type SigningParams = sp_core::sr25519::Pair;
 
 /// Rialto header type used in headers sync.
-pub type SyncHeader = relay_substrate_client::SyncHeader<rialto_runtime::Header>;
+pub type SyncHeader = relay_substrate_client::SyncHeader<runtime::Header>;
 
 #[cfg(test)]
 mod tests {
@@ -174,7 +175,7 @@ mod tests {
 	#[test]
 	fn parse_transaction_works() {
 		let unsigned = UnsignedTransaction {
-			call: rialto_runtime::Call::System(rialto_runtime::SystemCall::remark {
+			call: runtime::Call::System(runtime::SystemCall::remark {
 				remark: b"Hello world!".to_vec(),
 			})
 			.into(),

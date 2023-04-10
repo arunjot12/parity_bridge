@@ -19,6 +19,9 @@ use crate::{
 	select_full_bridge,
 };
 use frame_support::weights::Weight;
+use std::str::FromStr;
+
+
 use structopt::StructOpt;
 use strum::VariantNames;
 
@@ -74,6 +77,16 @@ impl EncodeMessage {
 		Ok(())
 	}
 }
+
+
+
+// impl sp_std::str::FromStr for bp_messages::Weight {
+// 	type Err = String;
+
+// 	fn from_str(_s: &str) -> Result<Self, Self::Err> {
+// 		todo!()
+// 	}
+// }
 
 #[cfg(test)]
 mod tests {

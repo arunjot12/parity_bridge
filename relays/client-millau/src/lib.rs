@@ -28,22 +28,22 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 /// Millau header id.
-pub type HeaderId = relay_utils::HeaderId<millau_runtime::Hash, millau_runtime::BlockNumber>;
+pub type HeaderId = relay_utils::HeaderId<kitchensink_runtime::Hash, kitchensink_runtime::BlockNumber>;
 
 /// Millau chain definition.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Millau;
 
 impl ChainBase for Millau {
-	type BlockNumber = millau_runtime::BlockNumber;
-	type Hash = millau_runtime::Hash;
-	type Hasher = millau_runtime::Hashing;
-	type Header = millau_runtime::Header;
+	type BlockNumber = kitchensink_runtime::BlockNumber;
+	type Hash = kitchensink_runtime::Hash;
+	type Hasher = kitchensink_runtime::Hashing;
+	type Header = kitchensink_runtime::Header;
 
-	type AccountId = millau_runtime::AccountId;
-	type Balance = millau_runtime::Balance;
-	type Index = millau_runtime::Index;
-	type Signature = millau_runtime::Signature;
+	type AccountId = kitchensink_runtime::AccountId;
+	type Balance = kitchensink_runtime::Balance;
+	type Index = kitchensink_runtime::Index;
+	type Signature = kitchensink_runtime::Signature;
 
 	fn max_extrinsic_size() -> u32 {
 		bp_millau::Millau::max_extrinsic_size()
@@ -82,15 +82,15 @@ impl Chain for Millau {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_millau::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type SignedBlock = millau_runtime::SignedBlock;
-	type Call = millau_runtime::Call;
+	type SignedBlock = kitchensink_runtime::SignedBlock;
+	type Call = kitchensink_runtime::RuntimeCall;
 	type WeightToFee = bp_millau::WeightToFee;
 }
 
 impl ChainWithBalances for Millau {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		use frame_support::storage::generator::StorageMap;
-		StorageKey(frame_system::Account::<millau_runtime::Runtime>::storage_map_final_key(
+		StorageKey(frame_system::Account::<kitchensink_runtime::Runtime>::storage_map_final_key(
 			account_id,
 		))
 	}
@@ -99,20 +99,20 @@ impl ChainWithBalances for Millau {
 impl TransactionSignScheme for Millau {
 	type Chain = Millau;
 	type AccountKeyPair = sp_core::sr25519::Pair;
-	type SignedTransaction = millau_runtime::UncheckedExtrinsic;
+	type SignedTransaction = kitchensink_runtime::UncheckedExtrinsic;
 
 	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::from_raw(
 			param.unsigned.call.clone(),
 			(
-				frame_system::CheckNonZeroSender::<millau_runtime::Runtime>::new(),
-				frame_system::CheckSpecVersion::<millau_runtime::Runtime>::new(),
-				frame_system::CheckTxVersion::<millau_runtime::Runtime>::new(),
-				frame_system::CheckGenesis::<millau_runtime::Runtime>::new(),
-				frame_system::CheckEra::<millau_runtime::Runtime>::from(param.era.frame_era()),
-				frame_system::CheckNonce::<millau_runtime::Runtime>::from(param.unsigned.nonce),
-				frame_system::CheckWeight::<millau_runtime::Runtime>::new(),
-				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(param.unsigned.tip),
+				frame_system::CheckNonZeroSender::<kitchensink_runtime::Runtime>::new(),
+				frame_system::CheckSpecVersion::<kitchensink_runtime::Runtime>::new(),
+				frame_system::CheckTxVersion::<kitchensink_runtime::Runtime>::new(),
+				frame_system::CheckGenesis::<kitchensink_runtime::Runtime>::new(),
+				frame_system::CheckEra::<kitchensink_runtime::Runtime>::from(param.era.frame_era()),
+				frame_system::CheckNonce::<kitchensink_runtime::Runtime>::from(param.unsigned.nonce),
+				frame_system::CheckWeight::<kitchensink_runtime::Runtime>::new(),
+				pallet_asset_tx_payment::ChargeAssetTxPayment::<kitchensink_runtime::Runtime>::from(param.unsigned.tip, None),
 			),
 			(
 				(),
@@ -129,9 +129,9 @@ impl TransactionSignScheme for Millau {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		Ok(millau_runtime::UncheckedExtrinsic::new_signed(
+		Ok(kitchensink_runtime::UncheckedExtrinsic::new_signed(
 			call.into_decoded()?,
-			signer.into_account(),
+			signer.into_account().into(),
 			signature.into(),
 			extra,
 		))
@@ -144,9 +144,7 @@ impl TransactionSignScheme for Millau {
 	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {
 		tx.signature
 			.as_ref()
-			.map(|(address, _, _)| {
-				*address == millau_runtime::Address::from(*signer.public().as_array_ref())
-			})
+			.map(|(address, _, _)| *address == kitchensink_runtime::Address::Id(signer.public().into()))
 			.unwrap_or(false)
 	}
 
@@ -166,7 +164,7 @@ impl TransactionSignScheme for Millau {
 pub type SigningParams = sp_core::sr25519::Pair;
 
 /// Millau header type used in headers sync.
-pub type SyncHeader = relay_substrate_client::SyncHeader<millau_runtime::Header>;
+pub type SyncHeader = relay_substrate_client::SyncHeader<kitchensink_runtime::Header>;
 
 #[cfg(test)]
 mod tests {
@@ -176,7 +174,7 @@ mod tests {
 	#[test]
 	fn parse_transaction_works() {
 		let unsigned = UnsignedTransaction {
-			call: millau_runtime::Call::System(millau_runtime::SystemCall::remark {
+			call: kitchensink_runtime::Call::System(kitchensink_runtime::SystemCall::remark {
 				remark: b"Hello world!".to_vec(),
 			})
 			.into(),

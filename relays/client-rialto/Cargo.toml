@@ -12,14 +12,15 @@ relay-utils = { path = "../utils" }
 
 # Bridge dependencies
 
-bp-messages = { path = "../../primitives/messages" }
-bp-rialto = { path = "../../primitives/chain-rialto" }
-rialto-runtime = { path = "../../bin/rialto/runtime" }
+bp-messages = { path = "../../primitives_bridge/messages" }
+bp-rialto = { path = "../../primitives_bridge/chain-rialto" }
+runtime = { path = "../../bin/substrate2/runtime" }
 
 # Substrate Dependencies
 
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
-pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+pallet-asset-tx-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }

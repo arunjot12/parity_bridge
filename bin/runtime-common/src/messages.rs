@@ -26,6 +26,7 @@ use bp_messages::{
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
+use frame_support::weights::WeightToFee;
 use bp_runtime::{
 	messages::{DispatchFeePayment, MessageDispatchResult},
 	ChainId, Size, StorageProofChecker,
@@ -46,6 +47,7 @@ use sp_std::{
 	cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, ops::RangeInclusive,
 	vec::Vec,
 };
+use codec::Error;
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
@@ -86,9 +88,9 @@ pub trait ChainWithMessages {
 	type Signature: Encode + Decode;
 	/// Type of weight that is used on the chain. This would almost always be a regular
 	/// `frame_support::weight::Weight`. But since the meaning of weight on different chains
-	/// may be different, the `WeightOf<>` construct is used to avoid confusion between
+	/// may be different, the `WeightOf<>` construct is used to avoid confusion bet	ween
 	/// different weights.
-	type Weight: From<frame_support::weights::Weight> + PartialOrd;
+	type Weight: From<frame_support::weights::Weight> ;
 	/// Type of balances that is used on the chain.
 	type Balance: Encode
 		+ Decode
@@ -112,12 +114,12 @@ pub struct MessageTransaction<Weight> {
 /// This chain that has `pallet-bridge-messages` and `dispatch` modules.
 pub trait ThisChainWithMessages: ChainWithMessages {
 	/// Call origin on the chain.
-	type Origin;
+	type RuntimeOrigin;
 	/// Call type on the chain.
 	type Call: Encode + Decode;
 
 	/// Do we accept message sent by given origin to given lane?
-	fn is_message_accepted(origin: &Self::Origin, lane: &LaneId) -> bool;
+	fn is_message_accepted(origin: &Self::RuntimeOrigin, lane: &LaneId) -> bool;
 
 	/// Maximal number of pending (not yet delivered) messages at This chain.
 	///
@@ -176,7 +178,7 @@ pub type WeightOf<C> = <C as ChainWithMessages>::Weight;
 /// Type of balances that is used on the chain.
 pub type BalanceOf<C> = <C as ChainWithMessages>::Balance;
 /// Type of origin that is used on the chain.
-pub type OriginOf<C> = <C as ThisChainWithMessages>::Origin;
+pub type OriginOf<C> = <C as ThisChainWithMessages>::RuntimeOrigin;
 /// Type of call that is used on this chain.
 pub type CallOf<C> = <C as ThisChainWithMessages>::Call;
 
@@ -209,6 +211,7 @@ pub fn transaction_payment<Balance: AtLeast32BitUnsigned + FixedPointOperand>(
 
 	base_fee.saturating_add(len_fee).saturating_add(adjusted_weight_fee)
 }
+
 
 /// Sub-module that is declaring types required for processing This -> Bridged chain messages.
 pub mod source {
@@ -366,24 +369,9 @@ pub mod source {
 	/// check) that would reject message (see `FromThisChainMessageVerifier`).
 	pub fn verify_chain_message<B: MessageBridge>(
 		payload: &FromThisChainMessagePayload<B>,
-	) -> Result<(), &'static str> {
-		let weight_limits = BridgedChain::<B>::message_weight_limits(&payload.call);
-		if !weight_limits.contains(&payload.weight.into()) {
-			return Err("Incorrect message weight declared")
-		}
-
-		// The maximal size of extrinsic at Substrate-based chain depends on the
-		// `frame_system::Config::MaximumBlockLength` and
-		// `frame_system::Config::AvailableBlockRatio` constants. This check is here to be sure that
-		// the lane won't stuck because message is too large to fit into delivery transaction.
-		//
-		// **IMPORTANT NOTE**: the delivery transaction contains storage proof of the message, not
-		// the message itself. The proof is always larger than the message. But unless chain state
-		// is enormously large, it should be several dozens/hundreds of bytes. The delivery
-		// transaction also contains signatures and signed extensions. Because of this, we reserve
-		// 1/3 of the the maximal extrinsic weight for this data.
+	) -> Result<(),  &'static str> {
 		if payload.call.len() > maximal_message_size::<B>() as usize {
-			return Err("The message is too large to be sent over the lane")
+			return Err("Incorrect message weight declared".into())
 		}
 
 		Ok(())
@@ -408,7 +396,7 @@ pub mod source {
 		let delivery_transaction = BridgedChain::<B>::estimate_delivery_transaction(
 			&payload.encode(),
 			pay_dispatch_fee_at_target_chain,
-			if pay_dispatch_fee_at_target_chain { 0.into() } else { payload.weight.into() },
+			if pay_dispatch_fee_at_target_chain { Weight::zero().into() } else { payload.weight.into() },
 		);
 		let delivery_transaction_fee = BridgedChain::<B>::transaction_payment(delivery_transaction);
 
@@ -454,7 +442,7 @@ pub mod source {
 		pallet_bridge_grandpa::Pallet::<ThisRuntime, GrandpaInstance>::parse_finalized_storage_proof(
 			bridged_header_hash.into(),
 			StorageProof::new(storage_proof),
-			|storage| {
+			|mut storage| {
 				// Messages delivery proof is just proof of single storage key read => any error
 				// is fatal.
 				let storage_inbound_lane_data_key =
@@ -585,7 +573,9 @@ pub mod target {
 		fn dispatch_weight(
 			message: &DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
-			message.data.payload.as_ref().map(|payload| payload.weight).unwrap_or(0)
+			message.data.payload.as_ref().map(|payload| payload.weight).unwrap_or(Weight::zero(
+		
+			))
 		}
 
 		fn dispatch(
@@ -599,7 +589,7 @@ pub mod target {
 				message_id,
 				message.data.payload.map_err(drop),
 				|dispatch_origin, dispatch_weight| {
-					let unadjusted_weight_fee = ThisRuntime::WeightToFee::calc(&dispatch_weight);
+					let unadjusted_weight_fee = ThisRuntime::WeightToFee::weight_to_fee(&dispatch_weight);
 					let fee_multiplier =
 						pallet_transaction_payment::Pallet::<ThisRuntime>::next_fee_multiplier();
 					let adjusted_weight_fee =
@@ -693,11 +683,11 @@ pub mod target {
 	}
 
 	pub(crate) trait MessageProofParser {
-		fn read_raw_outbound_lane_data(&self, lane_id: &LaneId) -> Option<Vec<u8>>;
-		fn read_raw_message(&self, message_key: &MessageKey) -> Option<Vec<u8>>;
+		fn read_raw_outbound_lane_data(&mut self, lane_id: &LaneId) -> Option<Vec<u8>>;
+		fn read_raw_message(  &mut self, message_key: &MessageKey) -> Option<Vec<u8>>;
 	}
 
-	struct StorageProofCheckerAdapter<H: Hasher, B> {
+	struct StorageProofCheckerAdapter<H: Hasher , B> {
 		storage: StorageProofChecker<H>,
 		_dummy: sp_std::marker::PhantomData<B>,
 	}
@@ -707,7 +697,7 @@ pub mod target {
 		H: Hasher,
 		B: MessageBridge,
 	{
-		fn read_raw_outbound_lane_data(&self, lane_id: &LaneId) -> Option<Vec<u8>> {
+		fn read_raw_outbound_lane_data(&mut self, lane_id: &LaneId) -> Option<Vec<u8>> {
 			let storage_outbound_lane_data_key = bp_messages::storage_keys::outbound_lane_data_key(
 				B::BRIDGED_MESSAGES_PALLET_NAME,
 				lane_id,
@@ -715,7 +705,7 @@ pub mod target {
 			self.storage.read_value(storage_outbound_lane_data_key.0.as_ref()).ok()?
 		}
 
-		fn read_raw_message(&self, message_key: &MessageKey) -> Option<Vec<u8>> {
+		fn read_raw_message(&mut self,message_key: &MessageKey) -> Option<Vec<u8>> {
 			let storage_message_key = bp_messages::storage_keys::message_key(
 				B::BRIDGED_MESSAGES_PALLET_NAME,
 				&message_key.lane_id,
@@ -759,7 +749,7 @@ pub mod target {
 				0
 			};
 
-		let parser = build_parser(bridged_header_hash, storage_proof)?;
+		let  mut parser = build_parser(bridged_header_hash, storage_proof)?;
 
 		// Read messages first. All messages that are claimed to be in the proof must
 		// be in the proof. So any error in `read_value`, or even missing value is fatal.
@@ -768,8 +758,7 @@ pub mod target {
 		let mut messages = Vec::with_capacity(messages_in_the_proof as _);
 		for nonce in nonces_start..=nonces_end {
 			let message_key = MessageKey { lane_id: lane, nonce };
-			let raw_message_data = parser
-				.read_raw_message(&message_key)
+			let raw_message_data = parser.read_raw_message(&message_key)
 				.ok_or(MessageProofError::MissingRequiredMessage)?;
 			let message_data =
 				MessageData::<BalanceOf<BridgedChain<B>>>::decode(&mut &raw_message_data[..])

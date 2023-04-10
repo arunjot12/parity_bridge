@@ -36,13 +36,13 @@ impl CliEncodeCall for Millau {
 		Ok(match call {
 			Call::Raw { data } => Self::Call::decode(&mut &*data.0)?.into(),
 			Call::Remark { remark_payload, .. } =>
-				millau_runtime::Call::System(millau_runtime::SystemCall::remark {
+			kitchensink_runtime::RuntimeCall::System(kitchensink_runtime::SystemCall::remark {
 					remark: remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
 				})
 				.into(),
 			Call::Transfer { recipient, amount } =>
-				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer {
-					dest: recipient.raw_id(),
+			kitchensink_runtime::RuntimeCall::Balances(kitchensink_runtime::BalancesCall::transfer {
+				dest: sp_runtime::MultiAddress::Id(recipient.raw_id()),
 					value: amount.cast(),
 				})
 				.into(),
@@ -50,8 +50,8 @@ impl CliEncodeCall for Millau {
 				match *bridge_instance_index {
 					bridge::MILLAU_TO_RIALTO_INDEX => {
 						let payload = Decode::decode(&mut &*payload.0)?;
-						millau_runtime::Call::BridgeRialtoMessages(
-							millau_runtime::MessagesCall::send_message {
+						kitchensink_runtime::RuntimeCall::BridgeRialtoMessages(
+							kitchensink_runtime::MessagesCall::send_message {
 								lane_id: lane.0,
 								payload,
 								delivery_and_dispatch_fee: fee.cast(),
@@ -73,7 +73,7 @@ impl CliEncodeCall for Millau {
 }
 
 impl CliChain for Millau {
-	const RUNTIME_VERSION: RuntimeVersion = millau_runtime::VERSION;
+	const RUNTIME_VERSION: RuntimeVersion = kitchensink_runtime::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = MessagePayload<
@@ -84,7 +84,7 @@ impl CliChain for Millau {
 	>;
 
 	fn ss58_format() -> u16 {
-		millau_runtime::SS58Prefix::get() as u16
+		kitchensink_runtime::SS58Prefix::get() as u16
 	}
 
 	// TODO [#854|#843] support multiple bridges?

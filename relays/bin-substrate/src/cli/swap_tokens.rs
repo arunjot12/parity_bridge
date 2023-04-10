@@ -110,8 +110,8 @@ macro_rules! select_bridge {
 			SwapTokensBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
-				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
-				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const SOURCE_SPEC_VERSION: u32 = kitchensink_runtime::VERSION.spec_version;
+				const TARGET_SPEC_VERSION: u32 = runtime::VERSION.spec_version;
 
 				type FromSwapToThisAccountIdConverter = bp_rialto::AccountIdConverter;
 
@@ -499,8 +499,8 @@ impl SwapTokens {
 	where
 		AccountIdOf<Source>: From<<Source::KeyPair as Pair>::Public>,
 		AccountIdOf<Target>: From<<Target::KeyPair as Pair>::Public>,
-		BalanceOf<Source>: From<u64>,
-		BalanceOf<Target>: From<u64>,
+		BalanceOf<Source>: From<u128>,
+		BalanceOf<Target>: From<u128>,
 	{
 		// accounts that are directly controlled by participants
 		let source_account_at_this_chain: AccountIdOf<Source> = source_sign.public().into();
@@ -629,15 +629,15 @@ pub(crate) async fn wait_until_transaction_is_finalized<C: Chain>(
 					C::NAME,
 					transaction_status,
 				)),
-			Some(TransactionStatusOf::<C>::Finalized(block_hash)) => {
-				log::trace!(
-					target: "bridge",
-					"{} transaction has been finalized at block {}",
-					C::NAME,
-					block_hash,
-				);
-				return Ok(block_hash)
-			},
+				Some(TransactionStatusOf::<C>::Finalized((block_hash,_))) => {
+					log::trace!(
+						target: "bridge",
+						"{:?} transaction has been finalized at block ",
+						C::NAME
+						//block_hash,
+					);
+					return Ok(block_hash)
+				},
 			_ => {
 				log::trace!(
 					target: "bridge",

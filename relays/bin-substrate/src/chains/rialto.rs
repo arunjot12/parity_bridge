@@ -36,12 +36,12 @@ impl CliEncodeCall for Rialto {
 		Ok(match call {
 			Call::Raw { data } => Self::Call::decode(&mut &*data.0)?.into(),
 			Call::Remark { remark_payload, .. } =>
-				rialto_runtime::Call::System(rialto_runtime::SystemCall::remark {
+			runtime::RuntimeCall::System(runtime::SystemCall::remark {
 					remark: remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
 				})
 				.into(),
 			Call::Transfer { recipient, amount } =>
-				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer {
+			runtime::RuntimeCall::Balances(runtime::BalancesCall::transfer {
 					dest: recipient.raw_id().into(),
 					value: amount.0,
 				})
@@ -50,8 +50,8 @@ impl CliEncodeCall for Rialto {
 				match *bridge_instance_index {
 					bridge::RIALTO_TO_MILLAU_INDEX => {
 						let payload = Decode::decode(&mut &*payload.0)?;
-						rialto_runtime::Call::BridgeMillauMessages(
-							rialto_runtime::MessagesCall::send_message {
+						runtime::RuntimeCall::BridgeMillauMessages(
+							runtime::MessagesCall::send_message {
 								lane_id: lane.0,
 								payload,
 								delivery_and_dispatch_fee: fee.0,
@@ -73,7 +73,7 @@ impl CliEncodeCall for Rialto {
 }
 
 impl CliChain for Rialto {
-	const RUNTIME_VERSION: RuntimeVersion = rialto_runtime::VERSION;
+	const RUNTIME_VERSION: RuntimeVersion = runtime::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = MessagePayload<
@@ -84,7 +84,7 @@ impl CliChain for Rialto {
 	>;
 
 	fn ss58_format() -> u16 {
-		rialto_runtime::SS58Prefix::get() as u16
+		runtime::SS58Prefix::get() as u16
 	}
 
 	fn encode_message(

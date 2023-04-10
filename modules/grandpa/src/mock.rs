@@ -104,7 +104,7 @@ impl Chain for TestBridgedChain {
 	type Header = <TestRuntime as frame_system::Config>::Header;
 
 	type AccountId = AccountId;
-	type Balance = u64;
+	type Balance = u128;
 	type Index = u64;
 	type Signature = Signature;
 

@@ -16,9 +16,9 @@ parking_lot = "0.11.0"
 
 # Bridge Dependencies
 
-bp-messages = { path = "../../primitives/messages" }
-bp-runtime = { path = "../../primitives/runtime" }
+bp-messages = { path = "../../primitives_bridge/messages" }
+bp-runtime = { path = "../../primitives_bridge/runtime" }
 finality-relay = { path = "../finality" }
 relay-utils = { path = "../utils" }
 
-sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }

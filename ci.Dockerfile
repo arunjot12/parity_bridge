@@ -36,7 +36,7 @@ ENV PROJECT=$PROJECT
 ENTRYPOINT ["/home/user/bridge-entrypoint.sh"]
 
 # metadata
-ARG VCS_REF=master
+ARG VCS_REF=polkadot-v0.9.36
 ARG BUILD_DATE=""
 ARG VERSION=""
 

@@ -64,7 +64,7 @@ impl<C: Chain> StorageProofOverheadMetric<C> {
 			.await?;
 		let storage_proof_size: usize = storage_proof.clone().iter_nodes().map(|n| n.len()).sum();
 
-		let storage_value_reader = bp_runtime::StorageProofChecker::<C::Hasher>::new(
+		let mut storage_value_reader = bp_runtime::StorageProofChecker::<C::Hasher>::new(
 			*best_header.state_root(),
 			storage_proof,
 		)

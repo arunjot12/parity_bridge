@@ -24,7 +24,7 @@ use crate::{
 	on_demand_headers::OnDemandHeadersRelay,
 	TransactionParams, STALL_TIMEOUT,
 };
-
+use bp_runtime::WeightExtraOps;
 use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::{AccountIdOf, Chain as _};
 use bridge_runtime_common::messages::{
@@ -469,16 +469,19 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 		W::receive_messages_proof_outbound_lane_state_overhead();
 	let delivery_tx_weight_rest = weight_for_delivery_tx - delivery_tx_base_weight;
 	let max_number_of_messages = std::cmp::min(
-		delivery_tx_weight_rest / W::receive_messages_proof_messages_overhead(1),
+		delivery_tx_weight_rest
+			.min_components_checked_div( W::receive_messages_proof_messages_overhead(1))
+			.unwrap_or(u64::MAX),
 		max_unconfirmed_messages_at_inbound_lane,
 	);
+
 
 	assert!(
 		max_number_of_messages > 0,
 		"Relay should fit at least one message in every delivery transaction",
 	);
 	assert!(
-		weight_for_messages_dispatch >= max_extrinsic_weight / 2,
+		weight_for_messages_dispatch .ref_time() >= max_extrinsic_weight.ref_time() / 2,
 		"Relay shall be able to deliver messages with dispatch weight = max_extrinsic_weight / 2",
 	);
 

@@ -25,8 +25,8 @@ thiserror = "1.0.26"
 
 # Bridge dependencies
 
-bp-runtime = { path = "../../primitives/runtime" }
+bp-runtime = { path = "../../primitives_bridge/runtime" }
 
 # Substrate dependencies
 
-substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate", branch = "master" }
+substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }

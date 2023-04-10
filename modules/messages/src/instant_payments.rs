@@ -53,12 +53,12 @@ pub struct InstantCurrencyPayments<T, I, Currency, GetConfirmationFee> {
 }
 
 impl<T, I, Currency, GetConfirmationFee>
-	MessageDeliveryAndDispatchPayment<T::Origin, T::AccountId, Currency::Balance>
+	MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId, Currency::Balance>
 	for InstantCurrencyPayments<T, I, Currency, GetConfirmationFee>
 where
 	T: frame_system::Config + crate::Config<I>,
 	I: 'static,
-	T::Origin: SenderOrigin<T::AccountId>,
+	T::RuntimeOrigin: SenderOrigin<T::AccountId>,
 	Currency: CurrencyT<T::AccountId, Balance = T::OutboundMessageFee>,
 	Currency::Balance: From<MessageNonce>,
 	GetConfirmationFee: Get<Currency::Balance>,
@@ -66,7 +66,7 @@ where
 	type Error = &'static str;
 
 	fn pay_delivery_and_dispatch_fee(
-		submitter: &T::Origin,
+		submitter: &T::RuntimeOrigin,
 		fee: &Currency::Balance,
 		relayer_fund_account: &T::AccountId,
 	) -> Result<(), Self::Error> {

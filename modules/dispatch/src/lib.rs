@@ -31,13 +31,16 @@ use bp_runtime::{
 	messages::{DispatchFeePayment, MessageDispatchResult},
 	ChainId, SourceAccount,
 };
+use frame_support::pallet_prelude::Weight;
 use codec::Encode;
 use frame_support::{
-	dispatch::Dispatchable,
+	 dispatch::Dispatchable,
 	ensure,
 	traits::{Contains, Get},
-	weights::{extract_actual_weight, GetDispatchInfo},
+	weights::{extract_actual_weight},
 };
+use frame_support::dispatch::GetDispatchInfo;
+use frame_support::dispatch;
 use frame_system::RawOrigin;
 use sp_runtime::traits::{BadOrigin, Convert, IdentifyAccount, MaybeDisplay, Verify};
 use sp_std::{fmt::Debug, prelude::*};
@@ -53,7 +56,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Id of the message. Whenever message is passed to the dispatch module, it emits
 		/// event with this id + dispatch result. Could be e.g. (LaneId, MessageNonce) if
 		/// it comes from the messages module.
@@ -74,7 +77,7 @@ pub mod pallet {
 		type Call: Parameter
 			+ GetDispatchInfo
 			+ Dispatchable<
-				Origin = <Self as frame_system::Config>::Origin,
+				RuntimeOrigin = <Self as frame_system::Config>::RuntimeOrigin,
 				PostInfo = frame_support::dispatch::PostDispatchInfo,
 			>;
 		/// Pre-dispatch filter for incoming calls.
@@ -170,7 +173,7 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 				Self::deposit_event(Event::MessageRejected(source_chain, id));
 				return MessageDispatchResult {
 					dispatch_result: false,
-					unspent_weight: 0,
+					unspent_weight: Weight::zero(),
 					dispatch_fee_paid_during_dispatch: false,
 				}
 			},
@@ -278,7 +281,7 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 		// because otherwise Calls may be dispatched at lower price)
 		let dispatch_info = call.get_dispatch_info();
 		let expected_weight = dispatch_info.weight;
-		if message.weight < expected_weight {
+		if message.weight.any_gt(expected_weight){
 			log::trace!(
 				target: "runtime::bridge-dispatch",
 				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
@@ -477,7 +480,7 @@ mod tests {
 
 	use crate as call_dispatch;
 
-	frame_support::construct_runtime! {
+construct_runtime! {
 		pub enum TestRuntime where
 			Block = Block,
 			NodeBlock = Block,

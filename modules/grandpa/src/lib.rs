@@ -39,7 +39,7 @@
 use bp_header_chain::{justification::GrandpaJustification, InitializationData};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{ensure, fail};
+use frame_support::{ensure,  fail};
 use frame_system::{ensure_signed, RawOrigin};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
@@ -57,6 +57,10 @@ pub mod benchmarking;
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
 pub use weights::WeightInfo;
+pub use frame_support::{
+	traits::{Get}
+
+};
 
 /// Block number of the bridged chain.
 pub type BridgedBlockNumber<T, I> = BlockNumberOf<<T as Config<I>>::BridgedChain>;
@@ -72,9 +76,9 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-
+	
 	#[pallet::config]
-	pub trait Config<I: 'static = ()>: frame_system::Config {
+	pub trait Config<I: 'static = ()>:  frame_system::Config {
 		/// The chain we are bridging to here.
 		type BridgedChain: Chain;
 
@@ -108,9 +112,7 @@ pub mod pallet {
 		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
 			<RequestCount<T, I>>::mutate(|count| *count = count.saturating_sub(1));
 
-			(0_u64)
-				.saturating_add(T::DbWeight::get().reads(1))
-				.saturating_add(T::DbWeight::get().writes(1))
+			T::DbWeight::get().reads_writes(1, 1)
 		}
 	}
 
@@ -509,7 +511,7 @@ pub mod pallet {
 	}
 
 	/// Ensure that the origin is either root, or `PalletOwner`.
-	fn ensure_owner_or_root<T: Config<I>, I: 'static>(origin: T::Origin) -> Result<(), BadOrigin> {
+	fn ensure_owner_or_root<T: Config<I>, I: 'static>(origin: T::RuntimeOrigin) -> Result<(), BadOrigin> {
 		match origin.into() {
 			Ok(RawOrigin::Root) => Ok(()),
 			Ok(RawOrigin::Signed(ref signer))
@@ -628,6 +630,9 @@ mod tests {
 	use codec::Encode;
 	use frame_support::{
 		assert_err, assert_noop, assert_ok, storage::generator::StorageValue,
+		
+	};
+	use frame_supports::{
 		weights::PostDispatchInfo,
 	};
 	use sp_runtime::{Digest, DigestItem, DispatchError};
@@ -654,7 +659,7 @@ mod tests {
 		Pallet::<TestRuntime>::initialize(origin, init_data.clone()).map(|_| init_data)
 	}
 
-	fn submit_finality_proof(header: u8) -> frame_support::dispatch::DispatchResultWithPostInfo {
+	fn submit_finality_proof(header: u8) -> frame_support2::dispatch::DispatchResultWithPostInfo {
 		let header = test_header(header.into());
 		let justification = make_default_justification(&header);
 
@@ -666,7 +671,7 @@ mod tests {
 	}
 
 	fn next_block() {
-		use frame_support::traits::OnInitialize;
+		use frame_support2::traits::OnInitialize;
 
 		let current_number = frame_system::Pallet::<TestRuntime>::block_number();
 		frame_system::Pallet::<TestRuntime>::set_block_number(current_number + 1);

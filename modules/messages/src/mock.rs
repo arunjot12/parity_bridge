@@ -50,7 +50,7 @@ use std::{
 };
 
 pub type AccountId = u64;
-pub type Balance = u64;
+pub type Balance = u128;
 #[derive(Decode, Encode, Clone, Debug, PartialEq, Eq, TypeInfo)]
 pub struct TestPayload {
 	/// Field that may be used to identify messages.

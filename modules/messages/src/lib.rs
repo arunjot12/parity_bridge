@@ -67,11 +67,16 @@ use frame_support::{
 	traits::Get,
 	weights::{Pays, PostDispatchInfo},
 };
+
+use frame_support::{
+weights::{RuntimeDbWeight}
+};
 use frame_system::RawOrigin;
 use num_traits::{SaturatingAdd, Zero};
 use sp_core::H256;
 use sp_runtime::traits::{BadOrigin, Convert};
 use sp_std::{cell::RefCell, cmp::PartialOrd, marker::PhantomData, prelude::*};
+use frame_support::pallet_prelude::Weight;
 
 mod inbound_lane;
 mod outbound_lane;
@@ -93,13 +98,15 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use frame_support::pallet_prelude::Pays;
+	//use frame_support2::pallet_prelude::Weight;
 
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		// General types
 
 		/// The overarching event type.
-		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfoExt;
 
@@ -170,14 +177,14 @@ pub mod pallet {
 		type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 		/// Message payload verifier.
 		type LaneMessageVerifier: LaneMessageVerifier<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::AccountId,
 			Self::OutboundPayload,
 			Self::OutboundMessageFee,
 		>;
 		/// Message delivery payment.
 		type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::AccountId,
 			Self::OutboundMessageFee,
 		>;
@@ -270,7 +277,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Send message over lane.
+		// Send message over lane.
 		#[pallet::weight(T::WeightInfo::send_message_weight(payload, T::DbWeight::get()))]
 		pub fn send_message(
 			origin: OriginFor<T>,
@@ -344,10 +351,7 @@ pub mod pallet {
 			});
 
 			// compute actual dispatch weight that depends on the stored message size
-			let actual_weight = sp_std::cmp::min(
-				T::WeightInfo::maximal_increase_message_fee(),
-				T::WeightInfo::increase_message_fee(message_size as _),
-			);
+			let actual_weight = T::DbWeight::get().reads_writes(2, 2);
 
 			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
 		}
@@ -433,7 +437,7 @@ pub mod pallet {
 					// on this lane. We can't dispatch lane messages out-of-order, so if declared
 					// weight is not enough, let's move to next lane
 					let dispatch_weight = T::MessageDispatch::dispatch_weight(&message);
-					if dispatch_weight > dispatch_weight_left {
+					if dispatch_weight .any_gt( dispatch_weight_left ){
 						log::trace!(
 							target: "runtime::bridge-messages",
 							"Cannot dispatch any more messages on lane {:?}. Weight: declared={}, left={}",
@@ -471,18 +475,18 @@ pub mod pallet {
 						ReceivalResult::TooManyUnconfirmedMessages => (dispatch_weight, true),
 					};
 
-					let unspent_weight = sp_std::cmp::min(unspent_weight, dispatch_weight);
+					let unspent_weight = unspent_weight.min(dispatch_weight);
 					dispatch_weight_left -= dispatch_weight - unspent_weight;
-					actual_weight = actual_weight.saturating_sub(unspent_weight).saturating_sub(
-						// delivery call weight formula assumes that the fee is paid at
-						// this (target) chain. If the message is prepaid at the source
-						// chain, let's refund relayer with this extra cost.
-						if refund_pay_dispatch_fee {
-							T::WeightInfo::pay_inbound_dispatch_fee_overhead()
-						} else {
-							0
-						},
-					);
+					actual_weight = actual_weight.saturating_sub(unspent_weight);
+					// 	// delivery call weight formula assumes that the fee is paid at
+					// 	// this (target) chain. If the message is prepaid at the source
+					// 	// chain, let's refund relayer with this extra cost.
+					// 	if refund_pay_dispatch_fee {
+					// 		T::WeightInfo::pay_inbound_dispatch_fee_overhead()
+					// 	} else {
+					// 		Weight::zero()
+					// 	},
+					// );
 				}
 			}
 
@@ -587,13 +591,13 @@ pub mod pallet {
 			};
 
 			if let Some(confirmed_messages) = confirmed_messages {
-				// handle messages delivery confirmation
-				let preliminary_callback_overhead =
-					relayers_state.total_messages.saturating_mul(single_message_callback_overhead);
+			//	handle messages delivery confirmation
+			let preliminary_callback_overhead =
+			single_message_callback_overhead.saturating_mul(relayers_state.total_messages);
 				let actual_callback_weight =
 					T::OnDeliveryConfirmed::on_messages_delivered(&lane_id, &confirmed_messages);
-				match preliminary_callback_overhead.checked_sub(actual_callback_weight) {
-					Some(difference) if difference == 0 => (),
+				match preliminary_callback_overhead.checked_sub(&actual_callback_weight) {
+					Some(difference) if difference.is_zero() => (),
 					Some(difference) => {
 						log::trace!(
 							target: "runtime::bridge-messages",
@@ -603,7 +607,10 @@ pub mod pallet {
 							actual_callback_weight,
 							difference,
 						);
-						actual_weight = actual_weight.saturating_sub(difference);
+						// actual_weight = actual_weight.set_proof_size(
+						// 	actual_weight.proof_size().saturating_sub(difference),
+						// );
+						actual_weight = actual_weight.saturating_sub(difference)
 					},
 					None => {
 						debug_assert!(
@@ -776,7 +783,7 @@ pub fn relayer_fund_account_id<AccountId, AccountIdConverter: Convert<H256, Acco
 
 impl<T, I>
 	bp_messages::source_chain::MessagesBridge<
-		T::Origin,
+		T::RuntimeOrigin,
 		T::AccountId,
 		T::OutboundMessageFee,
 		T::OutboundPayload,
@@ -788,7 +795,7 @@ where
 	type Error = sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>;
 
 	fn send_message(
-		sender: T::Origin,
+		sender: T::RuntimeOrigin,
 		lane: LaneId,
 		message: T::OutboundPayload,
 		delivery_and_dispatch_fee: T::OutboundMessageFee,
@@ -799,7 +806,7 @@ where
 
 /// Function that actually sends message.
 fn send_message<T: Config<I>, I: 'static>(
-	submitter: T::Origin,
+	submitter: T::RuntimeOrigin,
 	lane_id: LaneId,
 	payload: T::OutboundPayload,
 	delivery_and_dispatch_fee: T::OutboundMessageFee,
@@ -874,8 +881,8 @@ fn send_message<T: Config<I>, I: 'static>(
 	let single_message_callback_overhead =
 		T::WeightInfo::single_message_callback_overhead(T::DbWeight::get());
 	let actual_callback_weight = T::OnMessageAccepted::on_messages_accepted(&lane_id, &nonce);
-	match single_message_callback_overhead.checked_sub(actual_callback_weight) {
-		Some(difference) if difference == 0 => (),
+	match single_message_callback_overhead.checked_sub(&actual_callback_weight) {
+		Some(difference) if difference == Weight::zero() => (),
 		Some(difference) => {
 			log::trace!(
 				target: "runtime::bridge-messages",
@@ -918,11 +925,11 @@ fn send_message<T: Config<I>, I: 'static>(
 
 	Pallet::<T, I>::deposit_event(Event::MessageAccepted(lane_id, nonce));
 
-	Ok(SendMessageArtifacts { nonce, weight: actual_weight })
+	Ok(SendMessageArtifacts { nonce, weight: Weight::zero()})
 }
 
 /// Ensure that the origin is either root, or `PalletOwner`.
-fn ensure_owner_or_root<T: Config<I>, I: 'static>(origin: T::Origin) -> Result<(), BadOrigin> {
+fn ensure_owner_or_root<T: Config<I>, I: 'static>(origin: T::RuntimeOrigin) -> Result<(), BadOrigin> {
 	match origin.into() {
 		Ok(RawOrigin::Root) => Ok(()),
 		Ok(RawOrigin::Signed(ref signer))
